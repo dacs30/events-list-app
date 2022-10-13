@@ -1,4 +1,5 @@
 import 'package:final_project_flutter/screens/a_event.dart';
+import 'package:final_project_flutter/screens/create_a_group.dart';
 import 'package:final_project_flutter/screens/events_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,6 +18,52 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   final User? user = FirebaseAuth.instance.currentUser;
+
+  final TextEditingController _groupNameController = TextEditingController();
+  final TextEditingController _groupPasswordController =
+      TextEditingController();
+
+  Future<void> foundAndAddedGroup() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("groups")
+          .where("groupName", isEqualTo: _groupNameController.text)
+          .get()
+          .then((value) => {
+                if (value.docs.isNotEmpty)
+                  {
+                    if (value.docs[0]['groupPassword'] ==
+                        _groupPasswordController.text)
+                      {
+                        // add user to group members array
+                        FirebaseFirestore.instance
+                            .collection("groups")
+                            .doc(value.docs[0].id)
+                            .update({
+                          "members": FieldValue.arrayUnion([
+                            FirebaseAuth.instance.currentUser!.email.toString()
+                          ])
+                        }).then(((value) => refresh()))
+                      }
+                  }
+                else
+                  {
+                    // create group
+                    FirebaseFirestore.instance.collection("groups").add({
+                      "groupName": _groupNameController.text,
+                      "groupPassword": _groupPasswordController.text,
+                      "members": [
+                        FirebaseAuth.instance.currentUser!.email.toString()
+                      ]
+                    }).then(
+                      (value) => refresh(),
+                    )
+                  }
+              });
+    } catch (e) {
+      print(e);
+    }
+  }
 
   final emailController = TextEditingController();
 
@@ -38,7 +85,7 @@ class HomePageState extends State<HomePage> {
     super.initState();
     FirebaseFirestore.instance
         .collection("users")
-        .doc(user!.email)
+        .doc(user?.email)
         .get()
         .then((value) => {
               setState(() {
@@ -65,12 +112,18 @@ class HomePageState extends State<HomePage> {
     // create snapchot of the group
     FirebaseFirestore.instance
         .collection("groups")
-        .where("members", arrayContains: user!.email)
+        .where("members", arrayContains: user?.email)
         .snapshots()
         .listen((event) {
-      setState(() {
-        groupId = event.docs[0].reference.id;
-      });
+      if (event.docs.isNotEmpty) {
+        setState(() {
+          groupDoc = event.docs[0];
+        });
+      } else {
+        setState(() {
+          groupDoc = null;
+        });
+      }
     });
 
     // store document snapshot of the group
@@ -79,7 +132,32 @@ class HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> refresh() async {
+    await FirebaseFirestore.instance
+        .collection("groups")
+        .where("members", arrayContains: user!.email)
+        .get()
+        .then((value) => {
+              if (value.docs.isNotEmpty)
+                {
+                  setState(() {
+                    groupName = value.docs[0].data()['groupName'];
+                  }),
+                  for (var i = 0; i < value.docs.length; i++)
+                    {
+                      setState(() {
+                        groupList.add(value.docs[i].data()['groupName']);
+                      }),
+                    }
+                }
+            })
+        .then((value) => getPage(currentIndex));
+  }
+
   Widget getPage(int index) {
+    if (groupList.isEmpty) {
+      return CreateAGroup(notifyParent: refresh);
+    }
     switch (index) {
       case 0:
         // check if groupName and groupId are empty circle spin loader if true
@@ -94,9 +172,15 @@ class HomePageState extends State<HomePage> {
             currentIndex: currentIndex,
             onEventViewPressed: (DocumentSnapshot eventDoc) => {
               setState(() {
-                areWeInEvent = true;
                 this.eventDoc = eventDoc;
-              })
+              }),
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AEvent(
+                          groupName: groupName,
+                          eventdoc: eventDoc,
+                          userName: userName)))
             },
           );
         }
@@ -200,9 +284,16 @@ class HomePageState extends State<HomePage> {
             currentIndex: currentIndex,
             onEventViewPressed: (DocumentSnapshot eventDoc) => {
               setState(() {
-                areWeInEvent = true;
+                // areWeInEvent = true;
                 this.eventDoc = eventDoc;
-              })
+              }),
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AEvent(
+                          groupName: groupName,
+                          eventdoc: eventDoc,
+                          userName: userName)))
             },
           );
         }
@@ -221,7 +312,11 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget _title() {
-    return Text(groupName);
+    if (groupName == '' && groupId == '') {
+      return const Text('Eve');
+    } else {
+      return Text(groupName);
+    }
   }
 
   @override
@@ -257,6 +352,60 @@ class HomePageState extends State<HomePage> {
                   },
                 );
               }).toList(),
+              ListTile(
+                title: const Text('Create a group'),
+                onTap: () {
+                  // ope new page to create a group dialog
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                            title: const Text('Create a group'),
+                            content: SizedBox(
+                              width: 300,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      labelText: 'Group name',
+                                    ),
+                                    controller: _groupNameController,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  TextField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      labelText: 'group password',
+                                    ),
+                                    controller: _groupPasswordController,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          foundAndAddedGroup();
+                                        },
+                                        child: const Text('Create or join'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ));
+                      });
+                },
+              ),
               ListTile(
                 title: const Text('Sign Out'),
                 onTap: () {

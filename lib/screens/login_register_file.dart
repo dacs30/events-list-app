@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   Future<void> signInWithEmailAndPassword() async {
     try {
@@ -32,7 +33,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> createUserWithEmailAndPassword() async {
     try {
       await Auth().signUpWithEmailAndPassword(
-          email: _emailController.text, password: _passwordController.text);
+          email: _emailController.text,
+          password: _passwordController.text,
+          name: _nameController.text);
     } on FirebaseAuthException catch (e) {
       setState(() {
         errorMessage = e.message;
@@ -116,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               children: <TextSpan>[
                 TextSpan(
-                  text: 'Events List',
+                  text: 'Eve',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 30,
@@ -166,9 +169,16 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
+              // text with party emoji
+              const Text(
+                '🎉',
+                style: TextStyle(fontSize: 50),
+              ),
               _appTitle(),
               const SizedBox(height: 20),
               _errorMessage(),
+              const SizedBox(height: 20),
+              isLogin ? const SizedBox() : _entryField('name', _nameController),
               const SizedBox(height: 20),
               _entryField('email', _emailController),
               const SizedBox(height: 20),

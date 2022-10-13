@@ -99,6 +99,9 @@ class AEventState extends State<AEvent> {
     // displey list of guests of the event
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: Text(widget.groupName),
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: Padding(
@@ -149,8 +152,14 @@ class AEventState extends State<AEvent> {
                 ElevatedButton(
                   onPressed: () {
                     // add guest to the event
-                    addGuest(_addGuestController.text, user?.email.toString(),
-                        widget.userName);
+                    if (_addGuestController.text.isNotEmpty) {
+                      addGuest(_addGuestController.text, user?.email.toString(),
+                          widget.userName);
+                    } else {
+                      setState(() {
+                        errorMessage = 'Please enter a guest name';
+                      });
+                    }
                   },
                   child: const Text("Add Guest"),
                 ),

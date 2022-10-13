@@ -22,7 +22,8 @@ class EventsPage extends StatefulWidget {
   EventsPageState createState() => EventsPageState();
 }
 
-class EventsPageState extends State<EventsPage> {
+class EventsPageState extends State<EventsPage>
+    with AutomaticKeepAliveClientMixin {
   List<String> eventList = [];
 
   // void setItem(string itemValue) {
@@ -59,6 +60,7 @@ class EventsPageState extends State<EventsPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     // list of events for the group
     return Center(
       child: SizedBox(
@@ -70,7 +72,7 @@ class EventsPageState extends State<EventsPage> {
               child: Text.rich(
                 textAlign: TextAlign.center,
                 TextSpan(
-                  text: 'Events for ',
+                  text: 'Eves for ',
                   style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
@@ -143,4 +145,7 @@ class EventsPageState extends State<EventsPage> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

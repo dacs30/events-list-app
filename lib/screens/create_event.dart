@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CreateEvent extends StatefulWidget {
   const CreateEvent({Key? key, required this.groupName}) : super(key: key);
@@ -20,6 +21,7 @@ class CreateEventState extends State<CreateEvent> {
   final TextEditingController _eventTimeController = TextEditingController();
   final TextEditingController _eventLocationController =
       TextEditingController();
+  Position? position;
 
   Future<void> createEvent() async {
     try {
@@ -39,6 +41,14 @@ class CreateEventState extends State<CreateEvent> {
     }
   }
 
+  void _positionGet() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      _kOptions.add(position.toString());
+    });
+  }
+
   Widget _errorMessage() {
     return Text(
       errorMessage ?? '',
@@ -54,7 +64,7 @@ class CreateEventState extends State<CreateEvent> {
       alignment: Alignment.center,
       child: SizedBox(
         width: 300,
-        child: TextField(
+        child: TextFormField(
           controller: controller,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
@@ -72,7 +82,7 @@ class CreateEventState extends State<CreateEvent> {
         // navigate back
         Navigator.pop(context);
       },
-      child: const Text('Create Event'),
+      child: const Text('Create Eve'),
     );
   }
 
@@ -112,6 +122,15 @@ class CreateEventState extends State<CreateEvent> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _positionGet();
+  }
+
+  List<String> _kOptions = <String>[];
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
@@ -128,7 +147,32 @@ class CreateEventState extends State<CreateEvent> {
               onPressed: () => _selectDate(context),
               child: const Text('Select Date')),
           const SizedBox(height: 20),
-          _entryField('Event Location', _eventLocationController),
+          SizedBox(
+            width: 300,
+            child: Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text == '') {
+                  return const Iterable<String>.empty();
+                }
+                return _kOptions.where((String option) {
+                  return option.contains(textEditingValue.text.toLowerCase());
+                });
+              },
+              fieldViewBuilder: (context, textEditingController, focusNode,
+                      onFieldSubmitted) =>
+                  SizedBox(
+                width: 300,
+                child: TextField(
+                  controller: textEditingController,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Event Location',
+                  ),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
           Row(
               mainAxisAlignment: MainAxisAlignment.center,
